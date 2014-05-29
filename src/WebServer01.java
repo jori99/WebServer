@@ -1,6 +1,5 @@
 import java.io.BufferedReader;
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -10,22 +9,23 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 
-public class WebServerTest {
-    private static final String ROOT_PATH = "/Users/jun.her/workspace/path-to-documentroot/";
+public class WebServer01 {
+    private static final String ROOT_PATH = "/Users/jun.her/workspace/WebServerTest/src/";
 
     ServerSocket ss;
     Socket socket;
 
-    public WebServerTest(int port){
+    public WebServer01(int port){
         try{
             //サーバーソケットのインスタンス生成
             ss = new ServerSocket(port);
 
             while(true){
+                //クライアントからの接続を待つ
                 socket = ss.accept();
-                System.out.println("Info : クライアントと接続されました。");
+                System.out.println("クライアントと接続されました。");
                 //接続処理スレッド
-                ConnectionThread ct = new ConnectionThread(socket);
+                ConnectionThread ct = new ConnectionThread(socket, port);
                 ct.start();
             }
         } catch (Exception ex) {
@@ -36,23 +36,26 @@ public class WebServerTest {
 
     static class ConnectionThread extends Thread {
         Socket socket;
+        int portNo;
 
-        public ConnectionThread(Socket sc) {
+        public ConnectionThread(Socket sc, int port) {
             socket = sc;
+            portNo = port;
         }
         //接続処理スレッド
         public void run(){
             try {
+                //サーバーへデータを送るために出力ストリームを作成
                 PrintStream ps = new PrintStream(socket.getOutputStream());
                 BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
                 String inline = reader.readLine();
+                System.out.println("HTTP Request");
                 while (reader.ready() && inline != null) {
                     System.out.println(inline);
 
                     inline = reader.readLine();
                 }
-
                 String filePath = ROOT_PATH + "test.html";
                 File file = new File(filePath);
 
@@ -82,6 +85,9 @@ public class WebServerTest {
 
                 dis.readFully(buf);
                 ps.write(buf, 0 , len);
+
+                System.out.println("HTTP Response");
+                System.out.println(new String(buf,"UTF-8"));
                 ps.flush();
                 dis.close();
             } catch(Exception ex){
@@ -105,7 +111,7 @@ public class WebServerTest {
         }
 
         try {
-            new WebServerTest(Integer.parseInt(args[0]));
+            new WebServer01(Integer.parseInt(args[0]));
         } catch (NumberFormatException e) {
             // TODO 自動生成された catch ブロック
             System.out.println("ポートは数値を指定してください。");
